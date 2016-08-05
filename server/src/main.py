@@ -119,7 +119,7 @@ def process_message(msg, addr):
   elif msg_type == 'rel':
     on_rel(j['msgs'], addr)
   else:
-    print('Unknown message received: {msg}'.format(msg=msg))
+    debug_log('Unknown message received: {msg}'.format(msg=msg))
 
 
 def on_ping(id, addr):
