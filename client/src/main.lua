@@ -175,7 +175,7 @@ end
 
 function load:handleConnect(msg)
   if msg.success then
-    Gamestate.switch(game, msg.player.id)
+    Gamestate.switch(game, msg.player)
     return
   else
     Gamestate.switch(menu, msg.reason)
@@ -187,12 +187,14 @@ end
 -- game
 -------------------
 
-function game:enter(previous, playerID)
+function game:enter(previous, player)
   -- disable key repeat previously set in the menu
   love.keyboard.setKeyRepeat(false)
 
-  self.playerID = playerID
-  self.players = {}
+  self.player = player
+  self.players = {
+    [self.player.id] = self.player
+  }
 
   self.lastPingDt = 0.0
   self.lastServerMsgDt = 0.0
@@ -210,29 +212,40 @@ function game:update(dt)
 end
 
 function game:draw()
-  -- draw UI
+  self:drawUI()
+
+  -- draw players
+  for addr, player in pairs(self.players) do
+    if player.id ~= self.player.id then -- we will draw ourselves separately, according to the corrected coords
+      self:drawPlayer(player)
+    end
+  end
+  self:drawPlayer(self.player)
+end
+
+function game:drawUI()
   if self.latency then
     love.graphics.setColor(colors.WHITE)
     love.graphics.print(string.format('Latency: %.2fs', self.latency), 0, font:getHeight())
   end
-  
-  -- draw players
+end
+
+function game:drawPlayer(player)
   local playerSize = {
     w = 10,
     h = 10
   }
-  for addr, player in pairs(self.players) do
-    -- draw character
-    love.graphics.setColor(colors.RED)
-    love.graphics.rectangle('fill', player.x, player.y, playerSize.w, playerSize.h)
-    -- draw player's name
-    love.graphics.setColor(colors.WHITE)
-    love.graphics.print(
-      player.name,
-      player.x + playerSize.w / 2 - font:getWidth(player.name) / 2,
-      player.y - playerSize.h / 2 - font:getHeight()
-    )
-  end
+
+  -- draw character
+  love.graphics.setColor(colors.RED)
+  love.graphics.rectangle('fill', player.x, player.y, playerSize.w, playerSize.h)
+  -- draw player's name
+  love.graphics.setColor(colors.WHITE)
+  love.graphics.print(
+    player.name,
+    player.x + playerSize.w / 2 - font:getWidth(player.name) / 2,
+    player.y - playerSize.h / 2 - font:getHeight()
+  )
 end
 
 function game:processIncomingMsgs(dt)
@@ -314,17 +327,27 @@ end
 function game:handleInput(dt)
   local speed = 50
 
-  local player = self.players[self.playerID]
-
   if love.keyboard.isDown('up') then 
-    player.y = player.y - speed * dt
+    self.player.y = self.player.y - speed * dt
   elseif love.keyboard.isDown('down') then 
-    player.y = player.y + speed * dt
+    self.player.y = self.player.y + speed * dt
   elseif love.keyboard.isDown('left') then 
-    player.x = player.x - speed * dt
+    self.player.x = self.player.x - speed * dt
   elseif love.keyboard.isDown('right') then
-    player.x = player.x + speed * dt
+    self.player.x = self.player.x + speed * dt
   end
+
+  local correctedCoords = self:correctCoords(self.player, self.players[self.player.id])
+  self.player.x = correctedCoords.x
+  self.player.y = correctedCoords.y
+end
+
+function game:correctCoords(c1, c2)
+  -- TODO: Make it in a more elegant way
+  return {
+    x = (c1.x + c2.x) / 2.0,
+    y = (c1.y + c2.y) / 2.0
+  }
 end
 
 function game:keypressed(key)

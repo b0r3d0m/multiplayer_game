@@ -144,9 +144,7 @@ def on_connect(name, addr):
   send_message({
     'type': 'connect',
     'success': True,
-    'player': {
-      'id': player.id
-    }
+    'player': player
   }, addr)
 
 
