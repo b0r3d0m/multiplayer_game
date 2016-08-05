@@ -7,6 +7,7 @@ require 'common.arr_utils'
 require 'common.protect'
 require 'common.string_utils'
 require 'common.table_utils'
+require 'common.time'
 local UDPSocket = require 'common.udp'
 
 -- project-related modules
@@ -195,6 +196,11 @@ function game:enter(previous, playerID)
 
   self.lastPingDt = 0.0
   self.lastServerMsgDt = 0.0
+
+  self.pingSeqNum = 0
+  self.sentPings = {} -- TODO: Remove old entries
+
+  self.latency = nil
 end
 
 function game:update(dt)
@@ -204,6 +210,13 @@ function game:update(dt)
 end
 
 function game:draw()
+  -- draw UI
+  if self.latency then
+    love.graphics.setColor(colors.WHITE)
+    love.graphics.print(string.format('Latency: %.2fs', self.latency), 0, font:getHeight())
+  end
+  
+  -- draw players
   local playerSize = {
     w = 10,
     h = 10
@@ -243,8 +256,11 @@ function game:sendOutgoingMsgs(dt)
   self.lastPingDt = self.lastPingDt + dt
   if self.lastPingDt > 1.0 then
     session:queueUDPMsg({
-      type = 'ping'
+      type = 'ping',
+      id = self.pingSeqNum
     })
+    self.sentPings[self.pingSeqNum] = gettime()
+    self.pingSeqNum = self.pingSeqNum + 1
     self.lastPingDt = 0.0
   end
 
@@ -264,7 +280,10 @@ function game:processMessage(msg)
 end
 
 function game:handlePong(msg)
-  -- TODO: Calculate latency
+  local sendTime = self.sentPings[msg.id]
+  if sendTime then
+    self.latency = gettime() - sendTime
+  end
 end
 
 function game:handleAck(msg)

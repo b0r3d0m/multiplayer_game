@@ -109,7 +109,7 @@ def process_message(msg, addr):
 
   msg_type = j['type']
   if msg_type == 'ping':
-    on_ping(addr)
+    on_ping(j['id'], addr)
   elif msg_type == 'connect':
     on_connect(j['name'], addr)
   elif msg_type == 'disconnect':
@@ -122,9 +122,10 @@ def process_message(msg, addr):
     print('Unknown message received: {msg}'.format(msg=msg))
 
 
-def on_ping(addr):
+def on_ping(id, addr):
   send_message({
-    'type': 'pong'
+    'type': 'pong',
+    'id': id
   }, addr)
 
 
