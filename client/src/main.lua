@@ -280,9 +280,11 @@ function game:processMessage(msg)
 end
 
 function game:handlePong(msg)
+  -- TODO: Handle situations when we don't have pongs for a long time
   local sendTime = self.sentPings[msg.id]
   if sendTime then
     self.latency = gettime() - sendTime
+    self.sentPings[msg.id] = nil
   end
 end
 
