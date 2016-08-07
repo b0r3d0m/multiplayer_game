@@ -8,11 +8,6 @@ import random
 import time
 import traceback
 
-# third-party libraries
-# Unlike standard json module,
-# jsonpickle can be used to encode nested objects
-import jsonpickle
-
 # common modules
 from common.simple_logger import SimpleLogger
 import common.utils
@@ -92,9 +87,9 @@ def send_message(msg, addr):
     client.send_seq_num += 1
     client.diffs[msg['id']] = msg['changes']
 
-  packet = jsonpickle.encode(msg)
-  debug_log('[send/{addr}]: {msg}'.format(addr=addr, msg=packet))
-  sock.sendto(packet, addr)
+  msg = Message(msg)
+  debug_log('[send/{addr}]: {msg}'.format(addr=addr, msg=msg.to_string()))
+  sock.sendto(msg.to_string(), addr)
 
 
 def broadcast_message(msg):
@@ -103,23 +98,21 @@ def broadcast_message(msg):
 
 
 def process_message(msg, addr):
-  debug_log('[recv/{addr}]: {msg}'.format(addr=addr, msg=msg))
+  debug_log('[recv/{addr}]: {msg}'.format(addr=addr, msg=msg.to_string()))
 
-  j = jsonpickle.decode(msg)
-
-  msg_type = j['type']
+  msg_type = msg.type
   if msg_type == 'ping':
-    on_ping(j['id'], addr)
+    on_ping(msg.id, addr)
   elif msg_type == 'connect':
-    on_connect(j['name'], addr)
+    on_connect(msg.name, addr)
   elif msg_type == 'disconnect':
     on_disconnect(addr)
   elif msg_type == 'ack':
-    on_ack(j['ack'], addr)
+    on_ack(msg.ack, addr)
   elif msg_type == 'rel':
-    on_rel(j['msgs'], addr)
+    on_rel(msg.msgs, addr)
   else:
-    debug_log('Unknown message received: {msg}'.format(msg=msg))
+    debug_log('Unknown message received: {msg}'.format(msg=msg.to_string()))
 
 
 def on_ping(id, addr):
@@ -215,7 +208,7 @@ def receive_messages():
       data, addr = sock.recvfrom(65565)
     except socket.error:
       break
-    msgs.append(Message(data, addr))
+    msgs.append((Message.from_string(data), addr))
 
   return msgs
 
@@ -274,14 +267,14 @@ def main():
   while True:
     # Process incoming messages
     msgs = receive_messages()
-    for msg in msgs:
+    for (msg, addr) in msgs:
       # Check whether it's a new client
-      if msg.addr not in clients:
-        clients[msg.addr] = Client()
+      if addr not in clients:
+        clients[addr] = Client()
       # Touch it anyway to update last message time
-      clients[msg.addr].touch()
+      clients[addr].touch()
 
-      process_message(msg.data, msg.addr)
+      process_message(msg, addr)
 
     # Check existing connections for timeouts
     check_connections()
