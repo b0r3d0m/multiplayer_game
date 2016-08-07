@@ -122,6 +122,7 @@ def on_connect(name, addr):
   if player is None:
     if world_state.get_player_by_name(name) is None:
       player = world_state.add_player(name, addr)
+      clients[addr] = Client()
     else:
       send_message({
         'type': 'connect',
@@ -263,13 +264,13 @@ def main():
     # Process incoming messages
     msgs = receive_messages()
     for (msg, addr) in msgs:
-      # Check whether it's a new client
-      if addr not in clients:
-        clients[addr] = Client()
-      # Touch it anyway to update last message time
-      clients[addr].touch()
-
+      # First message of every client should be 'connect'
+      if addr not in clients and msg.type != 'connect':
+        continue
       process_message(msg, addr)
+      # Touch it to update last message time
+      if addr in clients:
+        clients[addr].touch()
 
     # Check existing connections for timeouts
     check_connections()
