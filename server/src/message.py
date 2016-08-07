@@ -1,5 +1,11 @@
-# Unlike standard json module,
-# jsonpickle can be used to encode nested objects
+'''
+We need both json and jsonpickle
+because jsonpickle can natively encode nested Python objects
+but is vulnerable to arbitrary code execution while standard json module isn't
+'''
+
+import json
+
 import jsonpickle
 
 
@@ -22,5 +28,5 @@ class Message:
 
   @staticmethod
   def from_string(data):
-    return Message(jsonpickle.decode(data))
+    return Message(json.loads(data))
 
