@@ -92,11 +92,6 @@ def send_message(msg, addr):
   sock.sendto(msg.to_string(), addr)
 
 
-def broadcast_message(msg):
-  for addr, _ in clients.iteritems():
-    send_message(msg, addr)
-
-
 def process_message(msg, addr):
   debug_log('[recv/{addr}]: {msg}'.format(addr=addr, msg=msg.to_string()))
 
