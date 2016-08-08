@@ -68,7 +68,7 @@ function Session:sendUDPMsgs()
   for i=#self.sendQueue,1,-1 do
     local msg = self.sendQueue[i]
     if msg.reliable then
-      table.insert(relMsgs, msg.fields)
+      table.insert(relMsgs, 1, msg.fields) -- Add to the beginning to preserve messages order
     else
       self:debugPrint('[send]: ' .. msg:toString())
       self.udp:send(msg:toString())
